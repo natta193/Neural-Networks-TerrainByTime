@@ -1,4 +1,4 @@
-import tensorflow
+import tensorflow as tf
 # noinspection PyUnresolvedReferences
 from tensorflow.keras import Sequential
 # noinspection PyUnresolvedReferences

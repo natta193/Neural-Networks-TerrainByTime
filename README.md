@@ -3,3 +3,5 @@ REQUIRED LIBRARIES:
 - geopandas
 - rasterio
 - tensorflow
+
+pip3 install matplotlib, geopandas, rasterio, tensorflow
