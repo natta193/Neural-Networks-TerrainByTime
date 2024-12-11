@@ -16,6 +16,8 @@ def normalize(data):
 def invert_above_zero(data):
     return np.where(data > 0, 1 - data, data)
 
+
+# noinspection SpellCheckingInspection
 def main():
     print("Running...")
 
@@ -56,9 +58,9 @@ def main():
     # show saved graph
     if os.path.exists("models/generated_save.txt"):
         saved = np.loadtxt("models/generated_save.txt")
-        # plt.figure(figsize=(10, 6)) # test whether or not needed
+        plt.figure(figsize=(10, 6))
         plt.imshow(saved, cmap=custom_cmap)
-        # plt.colorbar() # test whether or not needed
+        plt.colorbar()
         plt.show()
 
     # now for the RNN
@@ -98,6 +100,7 @@ def main():
         model.save("models/save.keras")
     else:
         print("loading model...")
+        # noinspection PyUnresolvedReferences
         model = tf.keras.models.load_model("models/save.keras")
 
     # starting sequence
@@ -138,7 +141,13 @@ def main():
     # reshape to a 2d grid for visualization
     generated_terrain = np.array(generated_terrain)
     generated_terrain_grid = generated_terrain.reshape((500, 200))
+
+    # format !!!!
+    for _ in range(9):
+        generated_terrain_grid = normalize(generated_terrain_grid)
+        generated_terrain_grid = generated_terrain_grid**2
     generated_terrain_grid = normalize(generated_terrain_grid)
+
     if input("save? (y/n)").lower() == 'y':
         np.savetxt("models/generated_save.txt", generated_terrain_grid, fmt="%.4f")
 
