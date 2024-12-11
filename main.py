@@ -1,4 +1,5 @@
 import tensorflow as tf
+from matplotlib.colors import LinearSegmentedColormap
 # noinspection PyUnresolvedReferences
 from tensorflow.keras import Sequential
 # noinspection PyUnresolvedReferences
@@ -9,31 +10,49 @@ import rasterio
 import geopandas as gpd
 from shapely.geometry import box
 
+def normalize(data):
+    return (data - np.min(data)) / (np.max(data) - np.min(data))
+
+def invert_above_zero(data):
+    return np.where(data > 0, 1 - data, data)
+
 def main():
     print("Running...")
 
     with rasterio.open("datasets/japan_dem_wgs84.tif") as src:
         dem_data = src.read(1)
 
+    print(f"Minimum value in DEM: {np.min(dem_data)}")
+    print(f"Maximum value in DEM: {np.max(dem_data)}")
+
+    # invert, normalize and spread
+    for _ in range(9):
+        dem_data = normalize(dem_data)
+        dem_data = dem_data**1.5
+    dem_data = normalize(dem_data)
+    dem_data = invert_above_zero(dem_data)
+
+    print(f"Minimum value in DEM: {np.min(dem_data)}")
+    print(f"Maximum value in DEM: {np.max(dem_data)}")
+
     print(f"Dataset size: {dem_data.shape}")
 
-    # first display .tif
-    # create a geopandas GeoDataFrame for visualization
-    bounds = src.bounds
-    geometry = [box(bounds.left, bounds.bottom, bounds.right, bounds.top)]
-    gdf = gpd.GeoDataFrame({'geometry':geometry}, crs=src.crs)
-
-    # plot the DEM using geopandas and matplotlib
-    fig, ax = plt.subplots(figsize=(8, 8))
-    gdf.boundary.plot(ax=ax, color='red', linewidth=2)
-    ax.imshow(dem_data, cmap='terrain', extent=src.bounds, origin='upper')
-    ax.set_title('Digital Elevation Model')
+    # display tif custom sense
+    terrain_colors = [
+        (0.0, "lightblue"),
+        (0.1, "darkgreen"),
+        (0.5, "green"),
+        (0.6, "lightyellow"),
+        (0.7, "yellow"),
+        (1.0, "#5D3A00")
+    ]
+    custom_cmap = LinearSegmentedColormap.from_list("CustomTerrain", terrain_colors)
+    plt.figure(figsize=(10, 6))
+    plt.imshow(dem_data, cmap=custom_cmap)
+    plt.colorbar()
     plt.show()
 
     # now for the RNN
-    # normalize
-    dem_data = (dem_data - np.min(dem_data)) / (np.max(dem_data) - np.min(dem_data))
-
     # sequences
     sequence_length = 50
     sequences, next_values = [], []
@@ -60,7 +79,7 @@ def main():
     model.compile(optimizer='adam', loss='mse', metrics=['mae'])
 
     # train the model
-    model.fit(sequences, next_values, epochs=5, batch_size=64)
+    model.fit(sequences, next_values, epochs=20, batch_size=64)
 
     # starting sequence
     starting_sequence = flat_dem[:sequence_length].reshape((1, sequence_length, 1))
@@ -79,10 +98,11 @@ def main():
     generated_terrain = np.array(generated_terrain)
     generated_terrain_grid = generated_terrain.reshape((50, 20))
 
-    # plot the generated terrain
-    plt.imshow(generated_terrain_grid, cmap='terrain')
+    # plot generated terrain
+    custom_cmap = LinearSegmentedColormap.from_list("CustomTerrain", terrain_colors)
+    plt.figure(figsize=(10, 6))
+    plt.imshow(generated_terrain_grid, cmap=custom_cmap)
     plt.colorbar()
-    plt.title("Generated Terrain")
     plt.show()
 
 
