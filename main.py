@@ -29,6 +29,7 @@ def main():
 
     # invert, normalize and spread
     # dem_data = dem_data.astype(np.float64)
+    # maybe format just for viewing???
     for _ in range(9):
         dem_data = normalize(dem_data)
         dem_data = dem_data**1.5
