@@ -159,3 +159,4 @@ if __name__ == "__main__":
 
 
 # need a starting point aka drawing or 3x3 grid
+# split test data into grid of points n width apart and generate off that
