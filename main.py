@@ -17,29 +17,35 @@ def invert_above_zero(data):
     return np.where(data > 0, 1 - data, data)
 
 
-# noinspection SpellCheckingInspection
+def print_data(data):
+    print(f"Minimum value in DEM: {np.min(data)}")
+    print(f"Maximum value in DEM: {np.max(data)}")
+    print(f"Dataset size: {data.shape}")
+
+
+def spread(data, cycles, factor):
+    for _ in range(cycles):
+        data = data**factor
+        data = normalize(data)
+    return data
+
+
 def main():
     print("Running...")
 
     with rasterio.open("datasets/japan_dem_wgs84.tif") as src:
         dem_data = src.read(1)
 
-    print(f"Minimum value in DEM: {np.min(dem_data)}")
-    print(f"Maximum value in DEM: {np.max(dem_data)}")
+    print_data(dem_data)
 
     # invert, normalize and spread
-    # dem_data = dem_data.astype(np.float64)
-    # maybe format just for viewing???
-    for _ in range(9):
-        dem_data = normalize(dem_data)
-        dem_data = dem_data**1.5
+    display_data = normalize(dem_data)
+    display_data = spread(display_data, 9, 1.5)
+    display_data = invert_above_zero(display_data)
+
     dem_data = normalize(dem_data)
-    dem_data = invert_above_zero(dem_data)
 
-    print(f"Minimum value in DEM: {np.min(dem_data)}")
-    print(f"Maximum value in DEM: {np.max(dem_data)}")
-
-    print(f"Dataset size: {dem_data.shape}")
+    print_data(dem_data)
 
     # display tif custom sense
     terrain_colors = [
@@ -52,7 +58,7 @@ def main():
     ]
     custom_cmap = LinearSegmentedColormap.from_list("CustomTerrain", terrain_colors)
     plt.figure(figsize=(10, 6))
-    plt.imshow(dem_data, cmap=custom_cmap)
+    plt.imshow(display_data, cmap=custom_cmap)
     plt.colorbar()
     plt.show()
 
@@ -113,7 +119,7 @@ def main():
     batch_size = 50
 
     print("generating...")
-    for _ in tqdm(range(0, 100000, batch_size)):
+    for _ in tqdm(range(0, 10000, batch_size)):
         batch_input = np.tile(current_sequence, (batch_size, 1, 1))
         batch_predictions = model.predict(batch_input, verbose=0)
 
@@ -127,27 +133,15 @@ def main():
                 # Remove the first element (slice along the sequence axis)
                 current_sequence = current_sequence[:, 1:, :]
 
-    '''for x in range(1000):
-        print(f"progress: {x+1}/1000")
-        next_value = model.predict(current_sequence, verbose=2)
-        generated_terrain.append(next_value[0, 0])
-
-        next_value = np.expand_dims(next_values, axis=(0, -1))
-        current_sequence = np.append(current_sequence[:, 1:, :], next_value, axis=1)
-
-        if x > 3:
-            current_sequence = current_sequence[:, 1:, :]
-            print(f"removed one: \n{current_sequence}")'''
-
     # reshape to a 2d grid for visualization
     generated_terrain = np.array(generated_terrain)
-    generated_terrain_grid = generated_terrain.reshape((500, 200))
+    generated_terrain_grid = generated_terrain.reshape((125, 80))
 
-    # format !!!!
-    for _ in range(9):
-        generated_terrain_grid = normalize(generated_terrain_grid)
-        generated_terrain_grid = generated_terrain_grid**2
+    # format
     generated_terrain_grid = normalize(generated_terrain_grid)
+    generated_terrain_grid = spread(generated_terrain_grid, 9, 2)
+
+    print_data(generated_terrain_grid)
 
     if input("save? (y/n)").lower() == 'y':
         np.savetxt("models/generated_save.txt", generated_terrain_grid, fmt="%.4f")
@@ -161,3 +155,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+# need a starting point aka drawing or 3x3 grid
